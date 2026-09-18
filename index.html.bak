@@ -19,38 +19,9 @@
 const OWNER='unnameduser35555',REPO='hub',BRANCH='main';  
 const $=id=>document.getElementById(id);  
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));  
+async function api(path){const r=await fetch('https://api.github.com/repos/'+OWNER+'/'+REPO+'/contents/'+path+'?ref='+BRANCH,{headers:{Accept:'application/vnd.github+json'}});if(!r.ok)throw Error(r.status);return r.json()}  
 function fileName(name){const m=name.match(/^(.*?)(?::(.*?))?\.html$/i);return m?{name:m[1],desc:m[2]||'HTML work'}:null}  
-async function loadWorks() {
-  const r = await fetch('/api/works');
-  if (!r.ok) throw Error(r.status);
-
-  const files = await r.json();
-
-  const items = files
-    .map(x => ({
-      f: { name: x.name },
-      meta: fileName(x.name)
-    }))
-    .filter(x => x.meta);
-
-  $('workCount').textContent =
-    String(items.length).padStart(2, '0');
-
-  $('works').innerHTML = items.length
-    ? items.map((x, i) => {
-        const customUrl = '/' + encodeURIComponent(x.f.name);
-
-        return `<a class="item" href="${esc(customUrl)}" target="_blank" rel="noopener">
-          <span class="num">${String(i + 1).padStart(2, '0')}</span>
-          <span class="item-main">
-            <div class="name">${esc(x.meta.name)}</div>
-            <div class="desc">${esc(x.meta.desc)}</div>
-          </span>
-          <span class="arrow">↗</span>
-        </a>`;
-      }).join('')
-    : '<div class="empty">No works found.</div>';
-}
+function renderWorks(files){const items=files.filter(f=>f.type==='file'&&/\.html$/i.test(f.name)&&f.name.toLowerCase()!=='index.html').map(f=>({f,meta:fileName(f.name)})).filter(x=>x.meta);$('workCount').textContent=String(items.length).padStart(2,'0');$('works').innerHTML=items.length?items.map((x,i)=>{const customUrl='/'+encodeURIComponent(x.f.name);return `<a class="item" href="${esc(customUrl)}" target="_blank" rel="noopener"><span class="num">${String(i+1).padStart(2,'0')}</span><span class="item-main"><div class="name">${esc(x.meta.name)}</div><div class="desc">${esc(x.meta.desc)}</div></span><span class="arrow">↗</span></a>`}).join(''):'<div class="empty">No works found.</div>'}  
 function renderLinks(text){const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).filter(x=>!x.startsWith('#'));const items=lines.map(x=>{const m=x.match(/^(.+?)\s*\|\s*(https?:\/\/\S+)$/);return m?{name:m[1],url:m[2]}:{name:x,url:x}}).filter(x=>/^https?:\/\//.test(x.url));$('linkCount').textContent=String(items.length).padStart(2,'0');$('links').innerHTML=items.length?items.map((x,i)=>`<a class="item" href="${esc(x.url)}" target="_blank" rel="noopener"><span class="num">${String(i+1).padStart(2,'0')}</span><span class="item-main"><div class="name">${esc(x.name)}</div><div class="link-url">${esc(x.url)}</div></span><span class="arrow">↗</span></a>`).join(''):'<div class="empty">No links found.</div>'}  
-async function init(){try{await loadWorks();try{const r=await fetch('/link.txt');renderLinks(r.ok?await r.text():'')}catch{renderLinks('')} $('updated').textContent='SYNCED · '+new Date().toLocaleDateString('ja-JP')}catch(e){$('works').innerHTML='<div class="empty">Repository could not be loaded.</div>';$('links').innerHTML='<div class="empty">Check the repository service or Vercel API route.</div>';console.error(e)}}init();  
+async function init(){try{const files=await api('');renderWorks(files);try{const r=await fetch(''/link.txt');renderLinks(r.ok?await r.text():'')}catch{renderLinks('')} $('updated').textContent='SYNCED · '+new Date().toLocaleDateString('ja-JP')}catch(e){$('works').innerHTML='<div class="empty">Repository could not be loaded.</div>';$('links').innerHTML='<div class="empty">Check GitHub API access or repository visibility.</div>';console.error(e)}}init();  
 </script></body></html>
