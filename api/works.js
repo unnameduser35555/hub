@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
     const works = files
       .filter(file =>
-        file.type === 'file' &&
+        file.type === 'file' && !file.name.startsWith('!') &&
         /\.html$/i.test(file.name) &&
         file.name.toLowerCase() !== 'index.html'
       )
